@@ -6,6 +6,7 @@ const state = {
   changeIndexes: [],
   currentChange: 0,
   comparing: false,
+  activeSide: "lhs",
 };
 
 const elements = {
@@ -50,8 +51,37 @@ function fileName(path) {
 
 function setFile(side, path) {
   if (!path || typeof path !== "string") return;
-  state[side] = { path, name: fileName(path) };
+  state[side] = { kind: "file", path, name: fileName(path) };
+  state.result = null;
   renderFileCards();
+  advanceToOpenSide(side);
+}
+
+function pastedFileName(side) {
+  const other = state[side === "lhs" ? "rhs" : "lhs"];
+  const extension = other?.name?.match(/(\.[a-z0-9_+-]+)$/i)?.[1] || ".txt";
+  return side === "lhs" ? `pasted-original${extension}` : `pasted-changed${extension}`;
+}
+
+function setPastedText(side, content) {
+  if (typeof content !== "string" || content.length === 0) return;
+  state[side] = {
+    kind: "text",
+    name: state[side]?.kind === "text" ? state[side].name : pastedFileName(side),
+    content,
+  };
+  state.result = null;
+  renderFileCards();
+  advanceToOpenSide(side);
+  compareIfReady();
+}
+
+function advanceToOpenSide(side) {
+  const opposite = side === "lhs" ? "rhs" : "lhs";
+  state.activeSide = state[opposite] ? side : opposite;
+  if (!state[opposite]) {
+    elements[`${opposite}Card`].focus({ preventScroll: true });
+  }
 }
 
 function setDroppedFiles(paths, preferredSide = null) {
@@ -88,9 +118,12 @@ function renderFileCards() {
 
 function renderCard(card, file) {
   card.classList.toggle("has-file", Boolean(file));
+  card.classList.toggle("pasted", file?.kind === "text");
   if (!file) return;
-  card.querySelector(".selected-name").textContent = file.name;
-  card.querySelector(".selected-path").textContent = file.path;
+  card.querySelector(".selected-name").textContent = file.kind === "text" ? "Pasted text" : file.name;
+  card.querySelector(".selected-path").textContent = file.kind === "text"
+    ? `${sourceLines(file.content).length} lines · ${formatBytes(new TextEncoder().encode(file.content).length)}`
+    : file.path;
 }
 
 async function chooseFile(side) {
@@ -128,9 +161,9 @@ async function compareIfReady() {
   elements.loadingOverlay.setAttribute("aria-hidden", "false");
 
   try {
-    const response = await api.core.invoke("compare_files", {
-      lhsPath: state.lhs.path,
-      rhsPath: state.rhs.path,
+    const response = await api.core.invoke("compare_inputs", {
+      lhs: inputPayload(state.lhs),
+      rhs: inputPayload(state.rhs),
       ignoreComments: elements.ignoreComments.checked,
       stripCr: elements.stripCr.checked,
     });
@@ -145,6 +178,13 @@ async function compareIfReady() {
     elements.loadingOverlay.classList.remove("visible");
     elements.loadingOverlay.setAttribute("aria-hidden", "true");
   }
+}
+
+function inputPayload(input) {
+  if (input.kind === "text") {
+    return { kind: "text", name: input.name, content: input.content };
+  }
+  return { kind: "file", path: input.path };
 }
 
 function buildRows() {
@@ -379,6 +419,7 @@ function resetComparison() {
   state.result = null;
   state.rows = [];
   state.changeIndexes = [];
+  state.activeSide = "lhs";
   elements.diffBody.innerHTML = "";
   renderFileCards();
 }
@@ -439,6 +480,11 @@ function setTheme(theme) {
 function bindEvents() {
   elements.lhsCard.addEventListener("click", () => chooseFile("lhs"));
   elements.rhsCard.addEventListener("click", () => chooseFile("rhs"));
+  for (const side of ["lhs", "rhs"]) {
+    const card = elements[`${side}Card`];
+    card.addEventListener("mouseenter", () => { state.activeSide = side; });
+    card.addEventListener("focus", () => { state.activeSide = side; });
+  }
   elements.swapFiles.addEventListener("click", swapFiles);
   elements.newComparison.addEventListener("click", resetComparison);
   elements.previousChange.addEventListener("click", () => navigateChange(-1));
@@ -458,6 +504,17 @@ function bindEvents() {
     // still the primary path because browsers intentionally hide file paths.
     const paths = [...(event.dataTransfer?.files || [])].map((file) => file.path).filter(Boolean);
     if (paths.length) setDroppedFiles(paths, sideAtPosition({ x: event.clientX, y: event.clientY }));
+  });
+
+  document.addEventListener("paste", (event) => {
+    const target = event.target;
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable) return;
+    const content = event.clipboardData?.getData("text/plain");
+    if (!content) return;
+    event.preventDefault();
+    const focusedSide = document.activeElement?.closest?.(".file-card")?.dataset.side;
+    const side = focusedSide || state.activeSide;
+    setPastedText(side, content);
   });
 
   document.addEventListener("keydown", (event) => {

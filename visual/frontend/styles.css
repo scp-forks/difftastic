@@ -112,6 +112,7 @@ h1 em { color: var(--green); font-style: normal; font-weight: 560; }
 }
 .file-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 45%, color-mix(in srgb, var(--accent) 10%, transparent)); opacity: 0; transition: opacity .2s; pointer-events: none; }
 .file-card:hover, .file-card.drag-target { border-color: var(--green); transform: translateY(-2px); background: var(--surface-strong); box-shadow: 0 17px 45px rgba(25, 34, 29, .08); }
+.file-card:focus-visible { outline: 3px solid color-mix(in srgb, var(--green) 28%, transparent); outline-offset: 3px; border-color: var(--green); }
 .file-card:hover::after, .file-card.drag-target::after { opacity: 1; }
 .side-label { grid-column: 1 / -1; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 10px; font-weight: 800; }
 .file-icon { width: 45px; height: 51px; display: grid; place-items: center; align-self: center; }
@@ -120,11 +121,15 @@ h1 em { color: var(--green); font-style: normal; font-weight: 560; }
 .empty-file, .selected-file { display: flex; flex-direction: column; gap: 7px; min-width: 0; align-self: center; }
 .empty-file strong, .selected-file strong { font-size: 15px; font-weight: 720; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 .empty-file small, .selected-file small { color: var(--muted); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.paste-shortcut { display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; color: var(--muted); font-size: 10px; font-weight: 650; }
+.paste-shortcut kbd { padding: 2px 5px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-strong); color: var(--ink); font: 700 9px var(--sans); }
 .selected-file { display: none; }
 .card-action { align-self: center; color: var(--muted); border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 9px 11px; font-size: 11px; font-weight: 700; white-space: nowrap; }
 .file-card.has-file { border-style: solid; }
 .file-card.has-file .empty-file { display: none; }
 .file-card.has-file .selected-file { display: flex; }
+.file-card.pasted { border-color: color-mix(in srgb, var(--blue) 52%, var(--line)); }
+.file-card.pasted .file-icon svg { fill: color-mix(in srgb, var(--blue) 11%, var(--surface)); stroke: var(--blue); }
 .swap-button { width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-strong); cursor: pointer; display: grid; place-items: center; z-index: 1; transition: .2s; }
 .swap-button:hover { transform: rotate(180deg); border-color: var(--green); }
 .swap-button svg { width: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -141,6 +146,7 @@ h1 em { color: var(--green); font-style: normal; font-weight: 560; }
 .welcome.compact .file-icon { width: 31px; height: 36px; }
 .welcome.compact .file-icon svg { width: 25px; }
 .welcome.compact .card-action { padding: 7px 9px; }
+.welcome.compact .paste-shortcut { display: none; }
 .welcome.compact .swap-button { width: 38px; height: 38px; }
 
 .workspace-toolbar { min-height: 58px; padding: 10px 4px; display: flex; justify-content: space-between; gap: 20px; align-items: center; }

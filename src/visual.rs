@@ -2,7 +2,7 @@
 
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use humansize::{format_size, FormatSizeOptions, BINARY};
 use serde::Serialize;
@@ -38,6 +38,20 @@ impl Default for VisualDiffOptions {
     }
 }
 
+/// A source shown on either side of a visual comparison.
+#[derive(Debug, Clone)]
+pub enum VisualDiffInput {
+    File(PathBuf),
+    Text { name: String, content: String },
+}
+
+struct PreparedInput {
+    name: String,
+    path: String,
+    content: String,
+    bytes: usize,
+}
+
 #[derive(Serialize)]
 struct VisualFile {
     name: String,
@@ -63,19 +77,30 @@ pub fn visual_diff(
     rhs_path: impl AsRef<Path>,
     options: VisualDiffOptions,
 ) -> Result<String, String> {
-    let lhs_path = lhs_path.as_ref();
-    let rhs_path = rhs_path.as_ref();
-    let lhs_bytes = read_file(lhs_path)?;
-    let rhs_bytes = read_file(rhs_path)?;
+    visual_diff_inputs(
+        VisualDiffInput::File(lhs_path.as_ref().to_path_buf()),
+        VisualDiffInput::File(rhs_path.as_ref().to_path_buf()),
+        options,
+    )
+}
 
-    let lhs_argument = FileArgument::NamedPath(lhs_path.to_path_buf());
-    let rhs_argument = FileArgument::NamedPath(rhs_path.to_path_buf());
-    let display_path = preferred_display_path(lhs_path, rhs_path);
-
-    let lhs_content = decode_text(&lhs_bytes, &lhs_argument)?;
-    let rhs_content = decode_text(&rhs_bytes, &rhs_argument)?;
-    let mut lhs_src = lhs_content.clone();
-    let mut rhs_src = rhs_content.clone();
+/// Compare any combination of files and in-memory text with difftastic's
+/// syntax-aware engine.
+pub fn visual_diff_inputs(
+    lhs_input: VisualDiffInput,
+    rhs_input: VisualDiffInput,
+    options: VisualDiffOptions,
+) -> Result<String, String> {
+    let lhs_input = prepare_input(lhs_input)?;
+    let rhs_input = prepare_input(rhs_input)?;
+    let display_path = if rhs_input.name.is_empty() {
+        lhs_input.name.clone()
+    } else {
+        rhs_input.name.clone()
+    };
+    let rhs_argument = FileArgument::NamedPath(PathBuf::from(&display_path));
+    let mut lhs_src = lhs_input.content.clone();
+    let mut rhs_src = rhs_input.content.clone();
 
     if options.strip_cr {
         lhs_src.retain(|character| character != '\r');
@@ -107,14 +132,47 @@ pub fn visual_diff(
     let language = result.file_format.to_string();
     let has_syntactic_changes = result.has_syntactic_changes;
     let response = VisualResponse {
-        lhs: visual_file(lhs_path, lhs_src, lhs_bytes.len()),
-        rhs: visual_file(rhs_path, rhs_src, rhs_bytes.len()),
+        lhs: visual_file(lhs_input, lhs_src),
+        rhs: visual_file(rhs_input, rhs_src),
         diff: crate::display::json::to_value(&result),
         has_syntactic_changes,
         language,
     };
 
     serde_json::to_string(&response).map_err(|error| format!("Could not encode diff: {error}"))
+}
+
+fn prepare_input(input: VisualDiffInput) -> Result<PreparedInput, String> {
+    match input {
+        VisualDiffInput::File(path) => {
+            let bytes = read_file(&path)?;
+            let argument = FileArgument::NamedPath(path.clone());
+            let content = decode_text(&bytes, &argument)?;
+            let name = path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| path.display().to_string());
+            Ok(PreparedInput {
+                name,
+                path: path.display().to_string(),
+                content,
+                bytes: bytes.len(),
+            })
+        }
+        VisualDiffInput::Text { name, content } => {
+            let name = if name.trim().is_empty() {
+                "pasted.txt".to_owned()
+            } else {
+                name
+            };
+            Ok(PreparedInput {
+                name,
+                path: "Pasted content".to_owned(),
+                bytes: content.len(),
+                content,
+            })
+        }
+    }
 }
 
 fn read_file(path: &Path) -> Result<Vec<u8>, String> {
@@ -137,27 +195,17 @@ fn ensure_trailing_newline(content: &mut String) {
     }
 }
 
-fn preferred_display_path(lhs: &Path, rhs: &Path) -> String {
-    rhs.file_name()
-        .or_else(|| lhs.file_name())
-        .map(|name| name.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "comparison.txt".to_owned())
-}
-
-fn visual_file(path: &Path, content: String, bytes: usize) -> VisualFile {
+fn visual_file(input: PreparedInput, content: String) -> VisualFile {
     let lines = if content.is_empty() {
         0
     } else {
         content.lines().count()
     };
     VisualFile {
-        name: path
-            .file_name()
-            .map(|name| name.to_string_lossy().into_owned())
-            .unwrap_or_else(|| path.display().to_string()),
-        path: path.display().to_string(),
+        name: input.name,
+        path: input.path,
         content,
-        bytes,
+        bytes: input.bytes,
         lines,
     }
 }
@@ -392,5 +440,28 @@ mod tests {
         assert!(response["diff"]["chunks"].is_array());
         assert_eq!(response["lhs"]["name"], "comments_1.rs");
         assert_eq!(response["rhs"]["name"], "comments_2.rs");
+    }
+
+    #[test]
+    fn compares_pasted_text_with_the_named_language() {
+        let response = visual_diff_inputs(
+            VisualDiffInput::Text {
+                name: "pasted-original.rs".to_owned(),
+                content: "fn answer() -> u8 { 41 }".to_owned(),
+            },
+            VisualDiffInput::Text {
+                name: "pasted-changed.rs".to_owned(),
+                content: "fn answer() -> u8 { 42 }".to_owned(),
+            },
+            VisualDiffOptions::default(),
+        )
+        .unwrap();
+        let response: serde_json::Value = serde_json::from_str(&response).unwrap();
+
+        assert_eq!(response["language"], "Rust");
+        assert_eq!(response["has_syntactic_changes"], true);
+        assert_eq!(response["lhs"]["path"], "Pasted content");
+        assert_eq!(response["rhs"]["path"], "Pasted content");
+        assert!(response["diff"]["chunks"].is_array());
     }
 }

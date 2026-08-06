@@ -42,7 +42,7 @@ mod visual;
 #[cfg(test)]
 pub(crate) use parse::syntax;
 
-pub use visual::{visual_diff, VisualDiffOptions};
+pub use visual::{visual_diff, visual_diff_inputs, VisualDiffInput, VisualDiffOptions};
 
 /// Ensure Cargo carries the library target's native parser link metadata into
 /// binaries in this package. The function itself intentionally has no runtime
