@@ -1,6 +1,10 @@
 default:
     @just --list
 
+# Launch the visual Tauri frontend.
+studio:
+    cd visual/src-tauri && cargo run
+
 # Build and serve the manual.
 doc:
     cd manual && mdbook serve --open

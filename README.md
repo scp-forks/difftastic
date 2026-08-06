@@ -14,6 +14,17 @@ their syntax.
 [Installation](https://difftastic.wilfred.me.uk/installation.html) in
 [the manual](https://difftastic.wilfred.me.uk/).**
 
+## Visual Desktop App
+
+This fork includes **Difftastic Studio**, a local Tauri desktop viewer with
+native drag-and-drop, side-by-side syntax highlighting, change navigation and
+light/dark themes. It calls the same Rust parser and structural matcher as the
+CLI. See [`visual/README.md`](visual/README.md) for launch instructions, or run:
+
+```sh
+just studio
+```
+
 ## Examples
 
 ![Screenshot of difftastic and Rust](img/wrap_expr.png)

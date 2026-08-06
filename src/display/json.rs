@@ -313,6 +313,13 @@ pub(crate) fn print(diff: &DiffResult) {
     )
 }
 
+/// Convert a diff to the structured representation used by machine-readable
+/// frontends without writing it to stdout.
+#[allow(dead_code)]
+pub(crate) fn to_value(diff: &DiffResult) -> serde_json::Value {
+    serde_json::to_value(File::from(diff)).expect("failed to serialize file")
+}
+
 fn add_changes_to_side<'s>(
     side: &mut Side<'s>,
     line_num: LineNumber,

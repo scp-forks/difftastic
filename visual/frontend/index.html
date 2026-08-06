@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4f1e8" />
+    <title>Difftastic Studio</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand" aria-label="Difftastic Studio">
+          <span class="brand-mark" aria-hidden="true">
+            <i></i><i></i><i></i>
+          </span>
+          <span class="brand-name">difftastic</span>
+          <span class="brand-product">studio</span>
+        </div>
+
+        <div class="engine-pill">
+          <span class="pulse-dot"></span>
+          Local syntax engine
+        </div>
+
+        <div class="top-actions">
+          <button class="icon-button" id="newComparison" title="New comparison" aria-label="New comparison">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+          <button class="icon-button" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="welcome" id="welcome">
+          <div class="welcome-copy">
+            <div class="eyebrow"><span></span> See code the way it is structured</div>
+            <h1>Find the change.<br /><em>Skip the noise.</em></h1>
+            <p>Difftastic understands syntax, so formatting changes stay quiet and meaningful edits stand out.</p>
+          </div>
+
+          <div class="file-stage" id="fileStage">
+            <button class="file-card" data-side="lhs" id="lhsCard">
+              <span class="side-label">Original</span>
+              <span class="file-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 38"><path d="M5 1h14l8 8v28H5z"/><path d="M19 1v9h8"/><path d="M10 19h12M10 24h12M10 29h8"/></svg>
+              </span>
+              <span class="empty-file">
+                <strong>Drop the first file</strong>
+                <small>or click to browse</small>
+              </span>
+              <span class="selected-file">
+                <strong class="selected-name"></strong>
+                <small class="selected-path"></small>
+              </span>
+              <span class="card-action">Choose file</span>
+            </button>
+
+            <button class="swap-button" id="swapFiles" title="Swap files" aria-label="Swap files">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>
+            </button>
+
+            <button class="file-card" data-side="rhs" id="rhsCard">
+              <span class="side-label">Changed</span>
+              <span class="file-icon changed" aria-hidden="true">
+                <svg viewBox="0 0 32 38"><path d="M5 1h14l8 8v28H5z"/><path d="M19 1v9h8"/><path d="M10 19h12M10 24h12M10 29h8"/></svg>
+              </span>
+              <span class="empty-file">
+                <strong>Drop the second file</strong>
+                <small>or click to browse</small>
+              </span>
+              <span class="selected-file">
+                <strong class="selected-name"></strong>
+                <small class="selected-path"></small>
+              </span>
+              <span class="card-action">Choose file</span>
+            </button>
+          </div>
+
+          <div class="drop-note"><kbd>Drop 2 files</kbd> to compare instantly, or add them one at a time</div>
+        </section>
+
+        <section class="workspace" id="workspace" aria-live="polite">
+          <div class="workspace-toolbar">
+            <div class="result-summary">
+              <span class="status-badge" id="statusBadge"><i></i><span>Changed</span></span>
+              <span class="language-badge" id="languageBadge">Rust</span>
+              <span class="stat deletion" id="deletionStat">−0</span>
+              <span class="stat addition" id="additionStat">+0</span>
+              <span class="stat modified" id="modifiedStat">0 modified</span>
+            </div>
+
+            <div class="viewer-actions">
+              <div class="change-nav">
+                <button id="previousChange" title="Previous change" aria-label="Previous change">
+                  <svg viewBox="0 0 20 20"><path d="m5 12 5-5 5 5"/></svg>
+                </button>
+                <span id="changePosition">1 / 1</span>
+                <button id="nextChange" title="Next change" aria-label="Next change">
+                  <svg viewBox="0 0 20 20"><path d="m5 8 5 5 5-5"/></svg>
+                </button>
+              </div>
+              <label class="select-control">Context
+                <select id="contextSelect">
+                  <option value="2">2 lines</option>
+                  <option value="3" selected>3 lines</option>
+                  <option value="5">5 lines</option>
+                  <option value="10">10 lines</option>
+                  <option value="all">All lines</option>
+                </select>
+              </label>
+              <label class="check-control"><input type="checkbox" id="ignoreComments" /><span></span> Ignore comments</label>
+              <label class="check-control"><input type="checkbox" id="stripCr" checked /><span></span> Normalize CRLF</label>
+            </div>
+          </div>
+
+          <div class="diff-frame" id="diffFrame">
+            <div class="column-heads">
+              <div class="column-head lhs-head">
+                <span class="column-role">Original</span>
+                <strong id="lhsHeaderName">first.rs</strong>
+                <small id="lhsHeaderMeta">0 lines · 0 B</small>
+              </div>
+              <div class="column-head rhs-head">
+                <span class="column-role">Changed</span>
+                <strong id="rhsHeaderName">second.rs</strong>
+                <small id="rhsHeaderMeta">0 lines · 0 B</small>
+              </div>
+            </div>
+            <div class="diff-body" id="diffBody"></div>
+            <div class="empty-result" id="emptyResult">
+              <span class="check-ring">
+                <svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9" /></svg>
+              </span>
+              <strong>No syntactic changes</strong>
+              <p>The files are structurally equivalent with these settings.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>Your files never leave this machine.</span>
+        <span class="footer-engine"><i></i> Powered by difftastic’s structural matcher</span>
+      </footer>
+    </div>
+
+    <div class="drop-overlay" id="dropOverlay" aria-hidden="true">
+      <div><span class="brand-mark"><i></i><i></i><i></i></span><strong>Drop to compare</strong><small>One file fills the next open side. Two files fill both.</small></div>
+    </div>
+    <div class="loading-overlay" id="loadingOverlay" aria-hidden="true"><div class="loader"></div><span>Reading the syntax tree…</span></div>
+    <div class="toast" id="toast" role="alert"><strong>Couldn’t compare those files</strong><span id="toastMessage"></span><button id="closeToast" aria-label="Dismiss">×</button></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

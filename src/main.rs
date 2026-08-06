@@ -141,6 +141,8 @@ fn reset_sigpipe() {
 
 /// The entrypoint.
 fn main() {
+    // The reusable library target owns the native Tree-sitter link metadata.
+    difftastic::link_native_parsers();
     pretty_env_logger::try_init_timed_custom_env("DFT_LOG")
         .expect("The logger has not been previously initialized");
     reset_sigpipe();
