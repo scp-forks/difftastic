@@ -22,4 +22,5 @@ Drop two files anywhere in the window, drop one file and then another, or click
 either file card to use the native picker. You can also hover or keyboard-focus
 either side and press <kbd>Ctrl+V</kbd> or <kbd>⌘V</kbd> to compare pasted text.
 After the first paste, the other empty side is selected automatically for the
-next paste.
+next paste. Long lines are contained within their side and can be horizontally
+scrolled, or you can enable **Word wrap** in the comparison toolbar.

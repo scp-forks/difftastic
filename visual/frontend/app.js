@@ -19,6 +19,7 @@ const elements = {
   themeToggle: document.querySelector("#themeToggle"),
   dropOverlay: document.querySelector("#dropOverlay"),
   loadingOverlay: document.querySelector("#loadingOverlay"),
+  diffFrame: document.querySelector("#diffFrame"),
   diffBody: document.querySelector("#diffBody"),
   emptyResult: document.querySelector("#emptyResult"),
   statusBadge: document.querySelector("#statusBadge"),
@@ -32,6 +33,7 @@ const elements = {
   contextSelect: document.querySelector("#contextSelect"),
   ignoreComments: document.querySelector("#ignoreComments"),
   stripCr: document.querySelector("#stripCr"),
+  wrapLines: document.querySelector("#wrapLines"),
   lhsHeaderName: document.querySelector("#lhsHeaderName"),
   rhsHeaderName: document.querySelector("#rhsHeaderName"),
   lhsHeaderMeta: document.querySelector("#lhsHeaderMeta"),
@@ -477,6 +479,12 @@ function setTheme(theme) {
   localStorage.setItem("difftastic-theme", theme);
 }
 
+function setLineWrapping(enabled) {
+  elements.wrapLines.checked = enabled;
+  elements.diffFrame.classList.toggle("wrap-lines", enabled);
+  localStorage.setItem("difftastic-wrap-lines", enabled ? "on" : "off");
+}
+
 function bindEvents() {
   elements.lhsCard.addEventListener("click", () => chooseFile("lhs"));
   elements.rhsCard.addEventListener("click", () => chooseFile("rhs"));
@@ -492,6 +500,7 @@ function bindEvents() {
   elements.contextSelect.addEventListener("change", renderRows);
   elements.ignoreComments.addEventListener("change", compareIfReady);
   elements.stripCr.addEventListener("change", compareIfReady);
+  elements.wrapLines.addEventListener("change", () => setLineWrapping(elements.wrapLines.checked));
   elements.closeToast.addEventListener("click", () => elements.toast.classList.remove("visible"));
   elements.themeToggle.addEventListener("click", () => {
     setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
@@ -512,8 +521,12 @@ function bindEvents() {
     const content = event.clipboardData?.getData("text/plain");
     if (!content) return;
     event.preventDefault();
+    // Mouse intent wins. A card may retain keyboard focus after a picker or a
+    // previous paste, but hovering the opposite card must always redirect the
+    // next paste there.
+    const hoveredSide = document.querySelector(".file-card:hover")?.dataset.side;
     const focusedSide = document.activeElement?.closest?.(".file-card")?.dataset.side;
-    const side = focusedSide || state.activeSide;
+    const side = hoveredSide || focusedSide || state.activeSide;
     setPastedText(side, content);
   });
 
@@ -533,6 +546,7 @@ function init() {
   const savedTheme = localStorage.getItem("difftastic-theme");
   const darkPreferred = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
   setTheme(savedTheme || (darkPreferred ? "dark" : "light"));
+  setLineWrapping(localStorage.getItem("difftastic-wrap-lines") === "on");
   bindEvents();
   installNativeDropListeners().catch(showError);
   renderFileCards();

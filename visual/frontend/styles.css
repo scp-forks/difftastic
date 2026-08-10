@@ -123,6 +123,7 @@ h1 em { color: var(--green); font-style: normal; font-weight: 560; }
 .empty-file small, .selected-file small { color: var(--muted); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 .paste-shortcut { display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; color: var(--muted); font-size: 10px; font-weight: 650; }
 .paste-shortcut kbd { padding: 2px 5px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-strong); color: var(--ink); font: 700 9px var(--sans); }
+.file-card:hover .paste-shortcut { color: var(--green); }
 .selected-file { display: none; }
 .card-action { align-self: center; color: var(--muted); border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 9px 11px; font-size: 11px; font-weight: 700; white-space: nowrap; }
 .file-card.has-file { border-style: solid; }
@@ -184,10 +185,11 @@ h1 em { color: var(--green); font-style: normal; font-weight: 560; }
 .diff-body { max-height: calc(100vh - 292px); min-height: 230px; overflow: auto; background: var(--surface-strong); scrollbar-color: var(--line-strong) transparent; }
 .diff-row { display: grid; grid-template-columns: 1fr 1fr; min-width: 780px; scroll-margin-top: 75px; }
 .diff-row.change-anchor { outline: 1px solid color-mix(in srgb, var(--blue) 42%, transparent); outline-offset: -1px; }
-.code-side { display: grid; grid-template-columns: 52px minmax(0, 1fr); min-height: 25px; border-bottom: 1px solid color-mix(in srgb, var(--line) 45%, transparent); min-width: 0; }
+.code-side { display: grid; grid-template-columns: 52px minmax(0, 1fr); min-height: 25px; border-bottom: 1px solid color-mix(in srgb, var(--line) 45%, transparent); min-width: 0; overflow: hidden; }
 .code-side + .code-side { border-left: 1px solid var(--line); }
 .line-number { user-select: none; padding: 5px 11px 4px 4px; color: var(--muted-light); text-align: right; font: 10px/16px var(--mono); background: color-mix(in srgb, var(--bg) 55%, var(--surface)); border-right: 1px solid color-mix(in srgb, var(--line) 52%, transparent); }
-.code-content { margin: 0; padding: 5px 14px 4px; min-width: 0; overflow-x: visible; white-space: pre; tab-size: 4; font: 11px/16px var(--mono); color: color-mix(in srgb, var(--ink) 90%, transparent); }
+.code-content { margin: 0; padding: 5px 14px 4px; min-width: 0; max-width: 100%; overflow-x: auto; white-space: pre; tab-size: 4; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; font: 11px/16px var(--mono); color: color-mix(in srgb, var(--ink) 90%, transparent); }
+.diff-frame.wrap-lines .code-content { overflow-x: hidden; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; }
 .code-side.removed { background: var(--red-soft); }
 .code-side.added { background: var(--green-soft); }
 .code-side.removed .line-number { color: var(--red); background: color-mix(in srgb, var(--red-soft) 82%, var(--surface)); }
