@@ -43,7 +43,7 @@
           </div>
 
           <div class="file-stage" id="fileStage">
-            <button class="file-card" data-side="lhs" id="lhsCard">
+            <button class="file-card" data-side="lhs" data-drop-label="Drop as Original" id="lhsCard">
               <span class="side-label">Original</span>
               <span class="file-icon" aria-hidden="true">
                 <svg viewBox="0 0 32 38"><path d="M5 1h14l8 8v28H5z"/><path d="M19 1v9h8"/><path d="M10 19h12M10 24h12M10 29h8"/></svg>
@@ -64,7 +64,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>
             </button>
 
-            <button class="file-card" data-side="rhs" id="rhsCard">
+            <button class="file-card" data-side="rhs" data-drop-label="Drop as Changed" id="rhsCard">
               <span class="side-label">Changed</span>
               <span class="file-icon changed" aria-hidden="true">
                 <svg viewBox="0 0 32 38"><path d="M5 1h14l8 8v28H5z"/><path d="M19 1v9h8"/><path d="M10 19h12M10 24h12M10 29h8"/></svg>
@@ -82,7 +82,7 @@
             </button>
           </div>
 
-          <div class="drop-note"><kbd>Drop 2 files</kbd> to compare instantly, add them one at a time, or paste directly into either side</div>
+          <div class="drop-note"><kbd>Drop 1 file</kbd> onto the side you want, <kbd>drop 2</kbd> to fill both, or paste directly into either side</div>
         </section>
 
         <section class="workspace" id="workspace" aria-live="polite">
@@ -152,7 +152,7 @@
     </div>
 
     <div class="drop-overlay" id="dropOverlay" aria-hidden="true">
-      <div><span class="brand-mark"><i></i><i></i><i></i></span><strong>Drop to compare</strong><small>One file fills the next open side. Two files fill both.</small></div>
+      <div><span class="brand-mark"><i></i><i></i><i></i></span><strong>Drop both to compare</strong><small>First file → Original&nbsp;&nbsp;·&nbsp;&nbsp;Second file → Changed</small></div>
     </div>
     <div class="loading-overlay" id="loadingOverlay" aria-hidden="true"><div class="loader"></div><span>Reading the syntax tree…</span></div>
     <div class="toast" id="toast" role="alert"><strong>Couldn’t compare those files</strong><span id="toastMessage"></span><button id="closeToast" aria-label="Dismiss">×</button></div>

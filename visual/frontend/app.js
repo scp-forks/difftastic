@@ -9,6 +9,11 @@ const state = {
   activeSide: "lhs",
 };
 
+const dragState = {
+  paths: [],
+  itemCount: 0,
+};
+
 const elements = {
   welcome: document.querySelector("#welcome"),
   workspace: document.querySelector("#workspace"),
@@ -436,13 +441,19 @@ function showError(error) {
 function hideDropState() {
   elements.dropOverlay.classList.remove("visible");
   elements.dropOverlay.setAttribute("aria-hidden", "true");
+  elements.lhsCard.classList.remove("drop-ready");
+  elements.rhsCard.classList.remove("drop-ready");
   elements.lhsCard.classList.remove("drag-target");
   elements.rhsCard.classList.remove("drag-target");
+  dragState.paths = [];
+  dragState.itemCount = 0;
 }
 
 function sideAtPosition(position) {
   if (!position) return null;
   const scale = window.devicePixelRatio || 1;
+  // Wry uses CSS-like coordinates on macOS/Linux. Keep a physical-pixel
+  // fallback for platforms that report the native position at display scale.
   const candidates = [position, { x: position.x / scale, y: position.y / scale }];
   for (const point of candidates) {
     for (const side of ["lhs", "rhs"]) {
@@ -453,10 +464,19 @@ function sideAtPosition(position) {
   return null;
 }
 
-function indicateDrop(position) {
-  const side = sideAtPosition(position);
-  elements.dropOverlay.classList.add("visible");
-  elements.dropOverlay.setAttribute("aria-hidden", "false");
+function indicateDrop({ paths = [], position = null, itemCount = 0 } = {}) {
+  const usablePaths = [...new Set(paths)].filter(Boolean);
+  if (usablePaths.length) dragState.paths = usablePaths;
+  if (itemCount) dragState.itemCount = itemCount;
+
+  const draggedCount = dragState.paths.length || dragState.itemCount;
+  const isMultiFile = draggedCount >= 2;
+  const side = draggedCount === 1 ? sideAtPosition(position) : null;
+
+  elements.dropOverlay.classList.toggle("visible", isMultiFile);
+  elements.dropOverlay.setAttribute("aria-hidden", isMultiFile ? "false" : "true");
+  elements.lhsCard.classList.toggle("drop-ready", draggedCount === 1);
+  elements.rhsCard.classList.toggle("drop-ready", draggedCount === 1);
   elements.lhsCard.classList.toggle("drag-target", side === "lhs");
   elements.rhsCard.classList.toggle("drag-target", side === "rhs");
 }
@@ -464,13 +484,19 @@ function indicateDrop(position) {
 async function installNativeDropListeners() {
   const listen = tauriApi()?.event?.listen;
   if (!listen) return;
-  await listen("tauri://drag-enter", (event) => indicateDrop(event.payload?.position));
-  await listen("tauri://drag-over", (event) => indicateDrop(event.payload?.position));
+  await listen("tauri://drag-enter", (event) => indicateDrop(event.payload));
+  await listen("tauri://drag-over", (event) => indicateDrop(event.payload));
   await listen("tauri://drag-leave", hideDropState);
   await listen("tauri://drag-drop", (event) => {
     const payload = event.payload || {};
-    const side = sideAtPosition(payload.position);
-    setDroppedFiles(payload.paths || [], side);
+    const paths = [...new Set(payload.paths?.length ? payload.paths : dragState.paths)].filter(Boolean);
+    const side = paths.length >= 2 ? null : sideAtPosition(payload.position);
+    hideDropState();
+    if (paths.length >= 2) {
+      setDroppedFiles(paths);
+    } else if (paths.length === 1 && side) {
+      setDroppedFiles(paths, side);
+    }
   });
 }
 
@@ -506,13 +532,37 @@ function bindEvents() {
     setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
   });
 
-  document.addEventListener("dragover", (event) => event.preventDefault());
+  document.addEventListener("dragenter", (event) => {
+    event.preventDefault();
+    const itemCount = [...(event.dataTransfer?.items || [])]
+      .filter((item) => item.kind === "file").length;
+    indicateDrop({
+      position: { x: event.clientX, y: event.clientY },
+      itemCount,
+    });
+  });
+  document.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    indicateDrop({
+      position: { x: event.clientX, y: event.clientY },
+      itemCount: dragState.itemCount,
+    });
+  });
+  document.addEventListener("dragleave", (event) => {
+    if (!event.relatedTarget) hideDropState();
+  });
   document.addEventListener("drop", (event) => {
     event.preventDefault();
     // WKWebView may expose a native `path` property. Tauri's native event is
     // still the primary path because browsers intentionally hide file paths.
     const paths = [...(event.dataTransfer?.files || [])].map((file) => file.path).filter(Boolean);
-    if (paths.length) setDroppedFiles(paths, sideAtPosition({ x: event.clientX, y: event.clientY }));
+    const side = paths.length >= 2 ? null : sideAtPosition({ x: event.clientX, y: event.clientY });
+    hideDropState();
+    if (paths.length >= 2) {
+      setDroppedFiles(paths);
+    } else if (paths.length === 1 && side) {
+      setDroppedFiles(paths, side);
+    }
   });
 
   document.addEventListener("paste", (event) => {

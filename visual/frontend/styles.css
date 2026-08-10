@@ -114,6 +114,13 @@ h1 em { color: var(--green); font-style: normal; font-weight: 560; }
 .file-card:hover, .file-card.drag-target { border-color: var(--green); transform: translateY(-2px); background: var(--surface-strong); box-shadow: 0 17px 45px rgba(25, 34, 29, .08); }
 .file-card:focus-visible { outline: 3px solid color-mix(in srgb, var(--green) 28%, transparent); outline-offset: 3px; border-color: var(--green); }
 .file-card:hover::after, .file-card.drag-target::after { opacity: 1; }
+.file-card.drop-ready { border-width: 2px; border-color: color-mix(in srgb, var(--green) 58%, var(--line)); transform: none; }
+.file-card.drop-ready::before {
+  content: attr(data-drop-label); position: absolute; inset: 8px; z-index: 3; display: grid; place-items: center; border: 1px dashed color-mix(in srgb, var(--green) 65%, transparent); border-radius: 13px;
+  background: color-mix(in srgb, var(--surface-strong) 94%, transparent); color: var(--green); font-size: 16px; font-weight: 760; letter-spacing: -.015em; pointer-events: none; transition: .16s ease;
+}
+.file-card.drop-ready.drag-target { border-color: var(--green); background: var(--green); box-shadow: 0 18px 48px color-mix(in srgb, var(--green) 25%, transparent); transform: translateY(-3px) scale(1.012); }
+.file-card.drop-ready.drag-target::before { border-color: rgba(255,255,255,.58); background: var(--green); color: white; }
 .side-label { grid-column: 1 / -1; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 10px; font-weight: 800; }
 .file-icon { width: 45px; height: 51px; display: grid; place-items: center; align-self: center; }
 .file-icon svg { width: 32px; fill: color-mix(in srgb, var(--red-soft) 80%, var(--surface)); stroke: var(--red); stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
@@ -218,7 +225,7 @@ footer { padding: 18px 32px 24px; color: var(--muted-light); font-size: 9px; dis
 
 .drop-overlay, .loading-overlay { position: fixed; inset: 0; z-index: 50; display: none; place-items: center; background: color-mix(in srgb, var(--navy) 87%, transparent); backdrop-filter: blur(8px); color: white; }
 .drop-overlay.visible, .loading-overlay.visible { display: grid; }
-.drop-overlay > div { width: min(560px, calc(100vw - 60px)); height: 250px; border: 1px dashed rgba(255,255,255,.42); border-radius: 25px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+.drop-overlay > div { width: min(640px, calc(100vw - 60px)); height: 280px; border: 1px dashed rgba(255,255,255,.42); border-radius: 25px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
 .drop-overlay .brand-mark { transform: scale(1.45); margin-bottom: 12px; }
 .drop-overlay strong { font-size: 24px; letter-spacing: -.03em; }
 .drop-overlay small { color: rgba(255,255,255,.65); }
