@@ -7,12 +7,54 @@ either side. The comparison stays on your computer.
 
 ![Difftacular waiting for two files](img/difftacular.png)
 
-## Install on macOS
+## Install
 
-Difftacular does not have packaged releases yet. For now, build it from this
-repository. Install the [Rust toolchain](https://rustup.rs/) and
-[`just`](https://github.com/casey/just) first. Then clone this branch and install
-the Tauri CLI:
+Download the file for your system from the
+[latest release](https://github.com/scp-forks/difftastic/releases/latest). There
+is nothing to build.
+
+| System | Download |
+| --- | --- |
+| macOS, Apple Silicon (M1 and later) | `Difftacular_<version>_macos_aarch64.dmg` |
+| macOS, Intel | `Difftacular_<version>_macos_x86_64.dmg` |
+| Linux, x86_64 | `Difftacular_<version>_linux_x86_64.AppImage` or `.deb` |
+| Windows, x86_64 | `Difftacular_<version>_windows_x86_64-setup.exe` or `.msi` |
+
+### macOS
+
+Open the `.dmg` and drag Difftacular to Applications. These builds are not
+signed with an Apple Developer certificate, so macOS refuses to open the app
+until you clear the download quarantine flag once:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Difftacular.app
+```
+
+### Linux
+
+The AppImage needs no installation:
+
+```sh
+chmod +x Difftacular_*_linux_x86_64.AppImage
+./Difftacular_*_linux_x86_64.AppImage
+```
+
+On Debian and Ubuntu you can install the `.deb` instead:
+
+```sh
+sudo apt install ./Difftacular_*_linux_x86_64.deb
+```
+
+### Windows
+
+Run the `-setup.exe` installer. It is unsigned, so SmartScreen shows a warning:
+choose **More info**, then **Run anyway**.
+
+## Build it yourself on macOS
+
+To build from source instead, install the [Rust toolchain](https://rustup.rs/)
+and [`just`](https://github.com/casey/just) first. Then clone this branch and
+install the Tauri CLI:
 
 ```sh
 git clone --branch feature/difftastic-studio \
@@ -93,6 +135,25 @@ cargo test --manifest-path visual/src-tauri/Cargo.toml
 ```
 
 The pinned Rust version is recorded in `rust-toolchain.toml`.
+
+### Releasing
+
+The installers are built by the
+[Difftacular Release](.github/workflows/difftacular-release.yml) GitHub Actions
+workflow. Publish a new version with one command:
+
+```sh
+just release-studio           # patch bump; pass minor or major instead
+```
+
+The same thing is a button under the repository's **Actions** tab: choose
+**Difftacular Release**, then **Run workflow**. Either way GitHub bumps the
+version, commits and tags it on `feature/difftastic-studio`, builds the macOS,
+Linux and Windows installers, and publishes them as a GitHub release.
+
+The version lives in `visual/src-tauri/tauri.conf.json`, and
+`visual/scripts/set-version.mjs` keeps it in step with that crate's `Cargo.toml`
+and `Cargo.lock`.
 
 ## License
 

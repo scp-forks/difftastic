@@ -34,3 +34,17 @@
   Raycast by searching for **Difftacular**.
 - Do not commit or push as part of deployment unless the user explicitly asks
   for those actions.
+
+## Difftacular releases
+
+- Installers for macOS, Linux and Windows are built and published by
+  `.github/workflows/difftacular-release.yml`. Start a release from the
+  repository's Actions tab or with `just release-studio [patch|minor|major]`.
+- Release tags are prefixed, as in `difftacular-v0.2.0`. Never tag a
+  Difftacular release with a bare version number: those tags trigger the
+  inherited upstream `release.yml`, which publishes difftastic to crates.io.
+- `visual/scripts/set-version.mjs` is the only thing that should edit the
+  Difftacular version. It keeps `tauri.conf.json`, `Cargo.toml` and `Cargo.lock`
+  in step so release builds stay `--locked`.
+- Publishing a release is a user-facing action and needs explicit user
+  authorization, in the same way as a commit or a push.

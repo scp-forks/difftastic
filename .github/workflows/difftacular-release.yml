@@ -1,0 +1,403 @@
+# Builds the Difftacular desktop app for macOS, Linux and Windows and
+# publishes them as a GitHub release, so people can use the app without
+# building it themselves.
+#
+# Two ways to cut a release:
+#
+#   * Actions -> "Difftacular Release" -> "Run workflow". This bumps the
+#     version, commits it, tags it, builds, and publishes.
+#   * Push a `difftacular-vX.Y.Z` tag by hand (`just release-studio`).
+#
+# The tag prefix keeps this separate from the upstream difftastic release
+# workflow, which triggers on bare version tags and publishes to crates.io.
+name: Difftacular Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump to apply"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      version:
+        description: "Exact version instead of a bump, e.g. 0.4.0 (optional)"
+        type: string
+        default: ""
+      prerelease:
+        description: "Publish as a pre-release"
+        type: boolean
+        default: false
+  push:
+    tags:
+      # Tag filters are globs, not regexes, so the version is checked in the
+      # prepare job rather than here.
+      - "difftacular-v*"
+
+permissions:
+  contents: write
+
+# Never build two releases at once: they would race on the version commit.
+concurrency:
+  group: difftacular-release
+  cancel-in-progress: false
+
+env:
+  RELEASE_BRANCH: feature/difftastic-studio
+  TAURI_CLI_VERSION: "2.11.4"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare:
+    name: Resolve version
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      prerelease: ${{ steps.resolve.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A dispatched run always releases the Difftacular branch. A tag push
+          # releases whatever that tag points at.
+          ref: ${{ github.event_name == 'push' && github.ref_name || env.RELEASE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Resolve the release version
+        id: resolve
+        shell: bash
+        # Inputs are read through the environment rather than interpolated into
+        # the script, so their contents cannot be executed as shell.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_REF: ${{ github.ref_name }}
+          INPUT_BUMP: ${{ inputs.bump }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT_NAME" = "push" ]; then
+            version="${TAG_REF#difftacular-v}"
+            tag="$TAG_REF"
+            prerelease=false
+            if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::Tag $tag does not name a MAJOR.MINOR.PATCH version."
+              exit 1
+            fi
+            echo "Releasing existing tag $tag."
+          else
+            if [ -n "$INPUT_VERSION" ]; then
+              version="$(node visual/scripts/set-version.mjs --set "$INPUT_VERSION")"
+            else
+              version="$(node visual/scripts/set-version.mjs --bump "$INPUT_BUMP")"
+            fi
+            tag="difftacular-v$version"
+            prerelease="$INPUT_PRERELEASE"
+
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "::error::Tag $tag already exists. Pick a different version."
+              exit 1
+            fi
+
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add visual/src-tauri/tauri.conf.json \
+                    visual/src-tauri/Cargo.toml \
+                    visual/src-tauri/Cargo.lock
+            # An explicit --version that matches the checked-in one leaves
+            # nothing to commit, which is fine: just tag what is already there.
+            if git diff --cached --quiet; then
+              echo "Version files already read $version."
+            else
+              git commit -m "Difftacular $version"
+            fi
+            git tag -a "$tag" -m "Difftacular $version"
+            git push origin "HEAD:refs/heads/$RELEASE_BRANCH"
+            git push origin "refs/tags/$tag"
+            echo "Tagged $tag on $RELEASE_BRANCH."
+          fi
+
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.name }}
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+            slug: macos_aarch64
+            bundles: dmg
+            expected: 1
+          # Cross-compiled from the Apple Silicon runner, because the Intel
+          # macOS runner image is on its way out.
+          - name: macOS (Intel)
+            os: macos-latest
+            target: x86_64-apple-darwin
+            slug: macos_x86_64
+            bundles: dmg
+            expected: 1
+          - name: Linux (x86_64)
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            slug: linux_x86_64
+            bundles: deb,appimage
+            expected: 2
+          - name: Windows (x86_64)
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            slug: windows_x86_64
+            bundles: msi,nsis
+            expected: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      # Tauri's Linux bundler needs the webkit2gtk stack, and patchelf to fix
+      # up the AppImage payload.
+      - name: Install the Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            curl \
+            wget \
+            file \
+            pkg-config \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install the pinned Rust toolchain
+        shell: bash
+        working-directory: visual/src-tauri
+        run: |
+          set -euo pipefail
+          # Running cargo inside the checkout installs the toolchain named by
+          # rust-toolchain.toml, which is the one the target is then added to.
+          cargo --version
+          rustup target add "${{ matrix.target }}"
+          rustup show active-toolchain
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: visual/src-tauri
+          key: ${{ matrix.target }}
+
+      # A prebuilt CLI keeps this to a download instead of a several-minute
+      # `cargo install`. The asset matches the runner, not the build target,
+      # since the Intel macOS bundle is cross-compiled on an Arm runner.
+      - name: Install the Tauri CLI
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$RUNNER_OS-$(uname -m)" in
+            Linux-x86_64) asset=cargo-tauri-x86_64-unknown-linux-gnu.tgz ;;
+            macOS-arm64)  asset=cargo-tauri-aarch64-apple-darwin.zip ;;
+            macOS-x86_64) asset=cargo-tauri-x86_64-apple-darwin.zip ;;
+            *) echo "::error::No Tauri CLI build for $RUNNER_OS-$(uname -m)"; exit 1 ;;
+          esac
+
+          dir="$RUNNER_TEMP/tauri-cli"
+          mkdir -p "$dir"
+          curl --proto '=https' --tlsv1.2 -fsSL --retry 3 -o "$RUNNER_TEMP/$asset" \
+            "https://github.com/tauri-apps/tauri/releases/download/tauri-cli-v${TAURI_CLI_VERSION}/$asset"
+
+          case "$asset" in
+            *.tgz) tar -xzf "$RUNNER_TEMP/$asset" -C "$dir" ;;
+            *.zip) unzip -q -o "$RUNNER_TEMP/$asset" -d "$dir" ;;
+          esac
+
+          chmod +x "$dir/cargo-tauri"
+          echo "$dir" >> "$GITHUB_PATH"
+
+      # Git Bash ships no unzip, so Windows unpacks with PowerShell instead.
+      - name: Install the Tauri CLI
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $asset = "cargo-tauri-x86_64-pc-windows-msvc.zip"
+          $dir = Join-Path $env:RUNNER_TEMP "tauri-cli"
+          $archive = Join-Path $env:RUNNER_TEMP $asset
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $url = "https://github.com/tauri-apps/tauri/releases/download/tauri-cli-v$($env:TAURI_CLI_VERSION)/$asset"
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          Expand-Archive -Path $archive -DestinationPath $dir -Force
+          Add-Content -Path $env:GITHUB_PATH -Value $dir
+
+      - name: Check the Tauri CLI
+        shell: bash
+        run: cargo tauri --version
+
+      # The tag decides the version, so a hand-made tag still produces
+      # correctly named and versioned bundles.
+      - name: Stamp the release version
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: node visual/scripts/set-version.mjs --set "$VERSION"
+
+      - name: Build the bundles
+        shell: bash
+        working-directory: visual/src-tauri
+        env:
+          # Ad-hoc signature. There is no Apple Developer certificate, but a
+          # sealed bundle still beats an unsigned one; see the release notes
+          # for the quarantine step users need.
+          APPLE_SIGNING_IDENTITY: "-"
+        run: |
+          set -euo pipefail
+          cargo tauri build \
+            --target "${{ matrix.target }}" \
+            --bundles "${{ matrix.bundles }}" \
+            -- --locked
+
+      - name: Collect the installers
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SLUG: ${{ matrix.slug }}
+          EXPECTED: ${{ matrix.expected }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          bundle_dir="visual/src-tauri/target/${{ matrix.target }}/release/bundle"
+          mkdir -p dist
+
+          for file in "$bundle_dir"/*/*.dmg \
+                      "$bundle_dir"/*/*.deb \
+                      "$bundle_dir"/*/*.AppImage \
+                      "$bundle_dir"/*/*.rpm \
+                      "$bundle_dir"/*/*.msi \
+                      "$bundle_dir"/*/*.exe; do
+            case "$file" in
+              # NSIS and MSI would otherwise collide on the installer name.
+              *.exe) name="Difftacular_${VERSION}_${SLUG}-setup.exe" ;;
+              *)     name="Difftacular_${VERSION}_${SLUG}.${file##*.}" ;;
+            esac
+            cp "$file" "dist/$name"
+            echo "Collected $name"
+          done
+
+          found=$(find dist -type f | wc -l | tr -d ' ')
+          if [ "$found" -ne "$EXPECTED" ]; then
+            echo "::error::Expected $EXPECTED installer(s) but found $found in $bundle_dir"
+            find "$bundle_dir" -maxdepth 2 -type f || true
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: difftacular-${{ matrix.slug }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish the release
+    needs: [prepare, build]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Write the checksums and release notes
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd artifacts
+          ls -lh
+          # Every installer is named Difftacular_*, so this cannot pick up the
+          # checksum file itself.
+          sha256sum Difftacular_* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          cd ..
+
+          cat > release-notes.md <<NOTES
+          Difftacular is a desktop app for comparing two files with
+          [Difftastic](https://github.com/Wilfred/difftastic)'s syntax-aware
+          diff engine. Download the file for your system below; there is
+          nothing to build.
+
+          | System | Download |
+          | --- | --- |
+          | macOS, Apple Silicon (M1 and later) | \`Difftacular_${VERSION}_macos_aarch64.dmg\` |
+          | macOS, Intel | \`Difftacular_${VERSION}_macos_x86_64.dmg\` |
+          | Linux, x86_64 | \`Difftacular_${VERSION}_linux_x86_64.AppImage\` or \`.deb\` |
+          | Windows, x86_64 | \`Difftacular_${VERSION}_windows_x86_64-setup.exe\` or \`.msi\` |
+
+          ### macOS
+
+          Open the \`.dmg\` and drag Difftacular to Applications. These builds
+          are not signed with an Apple Developer certificate, so macOS refuses
+          to open the app until you clear the download quarantine flag once:
+
+          \`\`\`sh
+          xattr -dr com.apple.quarantine /Applications/Difftacular.app
+          \`\`\`
+
+          ### Linux
+
+          The AppImage needs no installation:
+
+          \`\`\`sh
+          chmod +x Difftacular_${VERSION}_linux_x86_64.AppImage
+          ./Difftacular_${VERSION}_linux_x86_64.AppImage
+          \`\`\`
+
+          On Debian and Ubuntu you can install the \`.deb\` instead:
+
+          \`\`\`sh
+          sudo apt install ./Difftacular_${VERSION}_linux_x86_64.deb
+          \`\`\`
+
+          ### Windows
+
+          Run the \`-setup.exe\` installer. It is unsigned, so SmartScreen
+          shows a warning: choose **More info**, then **Run anyway**.
+
+          ### Verifying a download
+
+          \`SHA256SUMS.txt\` lists the checksum of every file in this release.
+
+          ---
+
+          Difftacular is a downstream fork and is not an official Difftastic
+          release. Report problems on
+          [this fork's issue tracker](https://github.com/scp-forks/difftastic/issues).
+          NOTES
+
+      - uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: Difftacular ${{ needs.prepare.outputs.version }}
+          body_path: release-notes.md
+          files: artifacts/*
+          prerelease: ${{ needs.prepare.outputs.prerelease == 'true' }}
+          # A pre-release must not become the "latest" download.
+          make_latest: ${{ needs.prepare.outputs.prerelease != 'true' }}
+          fail_on_unmatched_files: true

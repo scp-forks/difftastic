@@ -4,6 +4,10 @@ A small Tauri 2 desktop frontend that renders difftastic's own structured,
 syntax-aware diff output. The frontend is dependency-free HTML, CSS and
 JavaScript; the Tauri command calls the library adapter in the repository root.
 
+Prebuilt installers for macOS, Linux and Windows are attached to every
+[release](https://github.com/scp-forks/difftastic/releases/latest). The rest of
+this file is about working on the app.
+
 ## Run it
 
 From `visual/src-tauri`:

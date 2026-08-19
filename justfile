@@ -9,6 +9,13 @@ studio:
 install-studio:
     bash visual/install-macos.sh
 
+# Publish a new Difftacular release. GitHub bumps the version, builds the macOS,
+# Linux and Windows installers, and publishes them. Pass minor or major to
+# change the bump. Requires the gh CLI.
+release-studio bump="patch":
+    gh workflow run difftacular-release.yml --ref feature/difftastic-studio -f bump={{bump}}
+    @echo "Started. Watch it with: gh run watch --repo scp-forks/difftastic"
+
 # Build and serve the manual.
 doc:
     cd manual && mdbook serve --open
