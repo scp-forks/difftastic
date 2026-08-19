@@ -183,7 +183,7 @@ h1 em { color: var(--green); font-style: normal; font-weight: 560; }
 .check-control input:checked + span::after { transform: translateX(11px); }
 
 .diff-frame { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); overflow: hidden; box-shadow: var(--shadow); }
-.column-heads { display: grid; grid-template-columns: 1fr 1fr; position: sticky; top: 0; z-index: 5; background: var(--surface-strong); border-bottom: 1px solid var(--line); }
+.column-heads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) var(--diff-scrollbar-width, 0px); position: sticky; top: 0; z-index: 5; background: var(--surface-strong); border-bottom: 1px solid var(--line); }
 .column-head { min-width: 0; height: 64px; padding: 11px 17px 10px 72px; position: relative; display: grid; grid-template-columns: 1fr auto; align-content: center; column-gap: 10px; }
 .column-head + .column-head { border-left: 1px solid var(--line); }
 .column-role { position: absolute; left: 16px; top: 13px; color: var(--muted-light); text-transform: uppercase; letter-spacing: .1em; font-size: 8px; font-weight: 800; }

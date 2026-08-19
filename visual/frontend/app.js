@@ -37,6 +37,7 @@ const elements = {
   changePosition: document.querySelector("#changePosition"),
   contextSelect: document.querySelector("#contextSelect"),
   ignoreComments: document.querySelector("#ignoreComments"),
+  ignoreEdgeWhitespace: document.querySelector("#ignoreEdgeWhitespace"),
   stripCr: document.querySelector("#stripCr"),
   wrapLines: document.querySelector("#wrapLines"),
   lhsHeaderName: document.querySelector("#lhsHeaderName"),
@@ -172,6 +173,7 @@ async function compareIfReady() {
       lhs: inputPayload(state.lhs),
       rhs: inputPayload(state.rhs),
       ignoreComments: elements.ignoreComments.checked,
+      ignoreEdgeWhitespace: elements.ignoreEdgeWhitespace.checked,
       stripCr: elements.stripCr.checked,
     });
     state.result = JSON.parse(response);
@@ -276,6 +278,7 @@ function renderResult() {
   if (changed) renderRows();
   else elements.diffBody.innerHTML = "";
   updateNavigation();
+  window.requestAnimationFrame(syncDiffColumnGeometry);
 }
 
 function renderRows() {
@@ -309,6 +312,12 @@ function renderRows() {
     html += `<div class="skip-row">${skipped} unchanged ${skipped === 1 ? "line" : "lines"}</div>`;
   }
   elements.diffBody.innerHTML = html;
+  window.requestAnimationFrame(syncDiffColumnGeometry);
+}
+
+function syncDiffColumnGeometry() {
+  const scrollbarWidth = Math.max(0, elements.diffBody.offsetWidth - elements.diffBody.clientWidth);
+  elements.diffFrame.style.setProperty("--diff-scrollbar-width", `${scrollbarWidth}px`);
 }
 
 function renderRow(row) {
@@ -509,6 +518,7 @@ function setLineWrapping(enabled) {
   elements.wrapLines.checked = enabled;
   elements.diffFrame.classList.toggle("wrap-lines", enabled);
   localStorage.setItem("difftastic-wrap-lines", enabled ? "on" : "off");
+  window.requestAnimationFrame(syncDiffColumnGeometry);
 }
 
 function bindEvents() {
@@ -525,6 +535,7 @@ function bindEvents() {
   elements.nextChange.addEventListener("click", () => navigateChange(1));
   elements.contextSelect.addEventListener("change", renderRows);
   elements.ignoreComments.addEventListener("change", compareIfReady);
+  elements.ignoreEdgeWhitespace.addEventListener("change", compareIfReady);
   elements.stripCr.addEventListener("change", compareIfReady);
   elements.wrapLines.addEventListener("change", () => setLineWrapping(elements.wrapLines.checked));
   elements.closeToast.addEventListener("click", () => elements.toast.classList.remove("visible"));
@@ -590,6 +601,7 @@ function bindEvents() {
       navigateChange(-1);
     }
   });
+  window.addEventListener("resize", syncDiffColumnGeometry);
 }
 
 function init() {

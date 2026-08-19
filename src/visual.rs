@@ -26,6 +26,7 @@ use crate::summary::{DiffResult, FileContent, FileFormat};
 #[derive(Debug, Clone, Copy)]
 pub struct VisualDiffOptions {
     pub ignore_comments: bool,
+    pub ignore_edge_whitespace: bool,
     pub strip_cr: bool,
 }
 
@@ -33,6 +34,7 @@ impl Default for VisualDiffOptions {
     fn default() -> Self {
         Self {
             ignore_comments: false,
+            ignore_edge_whitespace: false,
             strip_cr: true,
         }
     }
@@ -109,6 +111,15 @@ pub fn visual_diff_inputs(
     ensure_trailing_newline(&mut lhs_src);
     ensure_trailing_newline(&mut rhs_src);
 
+    let (lhs_diff_src, rhs_diff_src) = if options.ignore_edge_whitespace {
+        (
+            trim_line_edge_whitespace(&lhs_src),
+            trim_line_edge_whitespace(&rhs_src),
+        )
+    } else {
+        (lhs_src.clone(), rhs_src.clone())
+    };
+
     let diff_options = DiffOptions {
         ignore_comments: options.ignore_comments,
         strip_cr: options.strip_cr,
@@ -124,17 +135,21 @@ pub fn visual_diff_inputs(
     let result = diff_file_content(
         &display_path,
         &rhs_argument,
-        &lhs_src,
-        &rhs_src,
+        &lhs_diff_src,
+        &rhs_diff_src,
         &display_options,
         &diff_options,
     );
     let language = result.file_format.to_string();
     let has_syntactic_changes = result.has_syntactic_changes;
+    let mut diff = crate::display::json::to_value(&result);
+    if options.ignore_edge_whitespace {
+        shift_visual_change_offsets(&mut diff, &lhs_src, &rhs_src);
+    }
     let response = VisualResponse {
         lhs: visual_file(lhs_input, lhs_src),
         rhs: visual_file(rhs_input, rhs_src),
-        diff: crate::display::json::to_value(&result),
+        diff,
         has_syntactic_changes,
         language,
     };
@@ -192,6 +207,99 @@ fn decode_text(bytes: &[u8], path: &FileArgument) -> Result<String, String> {
 fn ensure_trailing_newline(content: &mut String) {
     if !content.is_empty() && !content.ends_with('\n') {
         content.push('\n');
+    }
+}
+
+/// Trim spaces and tabs at each line edge while retaining the exact newline
+/// sequence. This is intentionally opt-in because leading whitespace is
+/// meaningful in some languages.
+fn trim_line_edge_whitespace(content: &str) -> String {
+    let mut trimmed = String::with_capacity(content.len());
+    for segment in content.split_inclusive('\n') {
+        let (line, has_lf) = segment
+            .strip_suffix('\n')
+            .map_or((segment, false), |line| (line, true));
+        let (line, has_cr) = line
+            .strip_suffix('\r')
+            .map_or((line, false), |line| (line, true));
+        trimmed.push_str(line.trim_matches(|character| matches!(character, ' ' | '\t')));
+        if has_cr {
+            trimmed.push('\r');
+        }
+        if has_lf {
+            trimmed.push('\n');
+        }
+    }
+    trimmed
+}
+
+/// The diff engine sees edge-trimmed lines, but the visual response retains
+/// the original text. Shift change byte offsets past each original line's
+/// leading spaces/tabs so token highlights still land on the correct text.
+fn shift_visual_change_offsets(diff: &mut serde_json::Value, lhs_src: &str, rhs_src: &str) {
+    let lhs_offsets = leading_edge_byte_offsets(lhs_src);
+    let rhs_offsets = leading_edge_byte_offsets(rhs_src);
+    let Some(chunks) = diff
+        .get_mut("chunks")
+        .and_then(serde_json::Value::as_array_mut)
+    else {
+        return;
+    };
+
+    for chunk in chunks {
+        let Some(lines) = chunk.as_array_mut() else {
+            continue;
+        };
+        for line in lines {
+            shift_side_change_offsets(line, "lhs", &lhs_offsets);
+            shift_side_change_offsets(line, "rhs", &rhs_offsets);
+        }
+    }
+}
+
+fn leading_edge_byte_offsets(content: &str) -> Vec<usize> {
+    content
+        .split('\n')
+        .map(|line| {
+            line.len()
+                - line
+                    .trim_start_matches(|character| matches!(character, ' ' | '\t'))
+                    .len()
+        })
+        .collect()
+}
+
+fn shift_side_change_offsets(
+    line: &mut serde_json::Value,
+    side_name: &str,
+    leading_offsets: &[usize],
+) {
+    let Some(side) = line.get_mut(side_name) else {
+        return;
+    };
+    let Some(line_number) = side.get("line_number").and_then(serde_json::Value::as_u64) else {
+        return;
+    };
+    let leading_offset = leading_offsets
+        .get(line_number as usize)
+        .copied()
+        .unwrap_or_default() as u64;
+    let Some(changes) = side
+        .get_mut("changes")
+        .and_then(serde_json::Value::as_array_mut)
+    else {
+        return;
+    };
+
+    for change in changes {
+        for edge in ["start", "end"] {
+            let Some(offset) = change.get_mut(edge) else {
+                continue;
+            };
+            if let Some(value) = offset.as_u64() {
+                *offset = serde_json::Value::from(value + leading_offset);
+            }
+        }
     }
 }
 
@@ -463,5 +571,82 @@ mod tests {
         assert_eq!(response["lhs"]["path"], "Pasted content");
         assert_eq!(response["rhs"]["path"], "Pasted content");
         assert!(response["diff"]["chunks"].is_array());
+    }
+
+    #[test]
+    fn can_ignore_spaces_and_tabs_at_line_edges() {
+        let response = visual_diff_inputs(
+            VisualDiffInput::Text {
+                name: "original.txt".to_owned(),
+                content: "  alpha\t \n\tbeta  \n".to_owned(),
+            },
+            VisualDiffInput::Text {
+                name: "changed.txt".to_owned(),
+                content: "\talpha\n beta\t\t\n".to_owned(),
+            },
+            VisualDiffOptions {
+                ignore_edge_whitespace: true,
+                ..VisualDiffOptions::default()
+            },
+        )
+        .unwrap();
+        let response: serde_json::Value = serde_json::from_str(&response).unwrap();
+
+        assert_eq!(response["has_syntactic_changes"], false);
+        assert_eq!(response["lhs"]["content"], "  alpha\t \n\tbeta  \n");
+        assert_eq!(response["rhs"]["content"], "\talpha\n beta\t\t\n");
+    }
+
+    #[test]
+    fn edge_whitespace_option_keeps_internal_whitespace_meaningful() {
+        let response = visual_diff_inputs(
+            VisualDiffInput::Text {
+                name: "original.txt".to_owned(),
+                content: " alpha beta \n".to_owned(),
+            },
+            VisualDiffInput::Text {
+                name: "changed.txt".to_owned(),
+                content: "\talpha    beta\t\n".to_owned(),
+            },
+            VisualDiffOptions {
+                ignore_edge_whitespace: true,
+                ..VisualDiffOptions::default()
+            },
+        )
+        .unwrap();
+        let response: serde_json::Value = serde_json::from_str(&response).unwrap();
+
+        assert_eq!(response["has_syntactic_changes"], true);
+    }
+
+    #[test]
+    fn trims_line_edges_without_changing_line_endings() {
+        assert_eq!(
+            trim_line_edge_whitespace("  alpha \t\r\n\tbeta  \n"),
+            "alpha\r\nbeta\n"
+        );
+    }
+
+    #[test]
+    fn remaps_trimmed_change_offsets_to_original_indentation() {
+        let mut diff = serde_json::json!({
+            "chunks": [[{
+                "lhs": {
+                    "line_number": 0,
+                    "changes": [{ "start": 0, "end": 5 }]
+                },
+                "rhs": {
+                    "line_number": 0,
+                    "changes": [{ "start": 1, "end": 4 }]
+                }
+            }]]
+        });
+
+        shift_visual_change_offsets(&mut diff, "  alpha\n", "\talpha\n");
+
+        assert_eq!(diff["chunks"][0][0]["lhs"]["changes"][0]["start"], 2);
+        assert_eq!(diff["chunks"][0][0]["lhs"]["changes"][0]["end"], 7);
+        assert_eq!(diff["chunks"][0][0]["rhs"]["changes"][0]["start"], 2);
+        assert_eq!(diff["chunks"][0][0]["rhs"]["changes"][0]["end"], 5);
     }
 }

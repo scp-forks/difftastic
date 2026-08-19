@@ -23,6 +23,7 @@ fn compare_inputs(
     lhs: DiffInput,
     rhs: DiffInput,
     ignore_comments: bool,
+    ignore_edge_whitespace: bool,
     strip_cr: bool,
 ) -> Result<String, String> {
     visual_diff_inputs(
@@ -30,6 +31,7 @@ fn compare_inputs(
         rhs.into(),
         VisualDiffOptions {
             ignore_comments,
+            ignore_edge_whitespace,
             strip_cr,
         },
     )

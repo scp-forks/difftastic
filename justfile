@@ -5,6 +5,10 @@ default:
 studio:
     cd visual/src-tauri && cargo run
 
+# Build, install, and launch Difftastic.app for Raycast/macOS app search.
+install-studio:
+    bash visual/install-macos.sh
+
 # Build and serve the manual.
 doc:
     cd manual && mdbook serve --open
