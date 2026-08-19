@@ -1,219 +1,101 @@
-<p align="center">
-  <a href="#readme"><img src="img/logo.png" alt="it's difftastic!"/></a>
-  <br>
-  <a href="https://difftastic.wilfred.me.uk/introduction.html"><img src="https://img.shields.io/badge/manual-en-brightgreen?style=plastic" alt="English manual"></a>
-  <a href="https://difftastic.wilfred.me.uk/zh-CN/"><img src="https://img.shields.io/badge/manual-zh--CN-brightgreen?style=plastic" alt="Chinese manual"></a>
-  <a href="https://crates.io/crates/difftastic"><img src="https://img.shields.io/crates/v/difftastic.svg?style=plastic" alt="crates.io"></a>
-  <a href="https://codecov.io/gh/Wilfred/difftastic"><img src="https://img.shields.io/codecov/c/github/Wilfred/difftastic?style=plastic&token=dZzAZtQT2S" alt="codecov.io"></a>
-</p>
+# Difftacular
 
-Difftastic is a structural diff tool that compares files based on
-their syntax.
+Difftacular is a desktop app for comparing two files with
+[Difftastic](https://github.com/Wilfred/difftastic)'s syntax-aware diff engine.
+Drop in a pair of files, choose them in the file picker, or paste text into
+either side. The comparison stays on your computer.
 
-**For installation instructions, see
-[Installation](https://difftastic.wilfred.me.uk/installation.html) in
-[the manual](https://difftastic.wilfred.me.uk/).**
+![Difftacular waiting for two files](img/difftacular.png)
 
-## Visual Desktop App
+## Install on macOS
 
-### Why this exists
+Difftacular does not have packaged releases yet. For now, build it from this
+repository. Install the [Rust toolchain](https://rustup.rs/) and
+[`just`](https://github.com/casey/just) first. Then clone this branch and install
+the Tauri CLI:
 
-Difftastic is an exceptional syntax-aware diff tool, but its command-line interface is not always the quickest fit when you simply want to compare a couple of files sitting on your desktop. Difftastic Studio gives the same structural diffing engine a more graphical, always-ready home: launch it from Raycast, leave it running in the background, then drag files—or paste text—onto either side and see the meaningful changes immediately.
+```sh
+git clone --branch feature/difftastic-studio \
+  https://github.com/scp-forks/difftastic.git difftacular
+cd difftacular
+cargo install tauri-cli --version 2.11.4 --locked
+just install-studio
+```
 
-This fork includes **Difftastic Studio**, a local Tauri desktop viewer with
-native drag-and-drop, direct text pasting, side-by-side syntax highlighting,
-change navigation and light/dark themes. It calls the same Rust parser and
-structural matcher as the CLI. See [`visual/README.md`](visual/README.md) for
-launch instructions, or run:
+The last command builds a release app, installs it at
+`~/Applications/Difftacular.app`, registers it with macOS, and opens it. Run the
+same command after pulling new changes. Difftacular will also appear in Raycast
+and other application launchers.
+
+If you only want to run the app from a source checkout:
 
 ```sh
 just studio
 ```
 
-## Examples
+## Use it
 
-![Screenshot of difftastic and Rust](img/wrap_expr.png)
+Drag one file onto the Original or Changed card to put it on that side. Drop two
+files anywhere in the window to fill both sides and compare them immediately.
+You can also click a card to browse for a file.
 
-^ Difftastic understands exactly which pieces of syntax have changed,
-and can highlight them in context.
+To compare text from the clipboard, hover over or focus a side and press
+<kbd>Command</kbd>+<kbd>V</kbd>. After the first paste, Difftacular selects the
+empty side for the second one.
 
-![Screenshot of difftastic and HTML](img/html.png)
+Once a comparison is open, you can:
 
-^ Difftastic understands when whitespace matters, and when it's just
-an indentation change.
+- move between changes;
+- change the number of context lines;
+- ignore comments or whitespace at the edges of lines;
+- normalize CRLF line endings;
+- wrap long lines;
+- swap the original and changed inputs;
+- switch between light and dark themes.
 
-![Screenshot of difftastic and JS](img/reformat.png)
+Difftacular uses Difftastic's language detection and structural matcher. For an
+unknown file type, it falls back to a line-oriented diff with word
+highlighting. See Difftastic's
+[supported languages](https://difftastic.wilfred.me.uk/languages_supported.html)
+for the current list.
 
-^ Difftastic is not line-oriented. If you reformat your code and it's
-now split over multiple lines, difftastic will show you what's
-actually changed.
+## Relationship to Difftastic
 
-![Screenshot of difftastic and git](img/git.png)
+This repository is a downstream fork of
+[Wilfred Hughes's Difftastic](https://github.com/Wilfred/difftastic).
+Difftacular is the desktop frontend maintained on the
+`feature/difftastic-studio` branch. 
 
-^ Difftastic is compatible with git (see [the configuration
-instructions](https://difftastic.wilfred.me.uk/git.html)), as well as
-many other version control systems.
+The app calls the Difftastic library in this repository, so its parsing and
+structural comparison come from the same Rust implementation as the `difft`
+command-line tool. Difftacular adds the Tauri desktop interface and a visual
+adapter for that output. It is not an official Difftastic release.
 
-## Languages Supported
+For the command-line tool, its configuration, and details about the diff
+algorithm, use the [Difftastic manual](https://difftastic.wilfred.me.uk/).
 
-Difftastic supports over 30 programming languages, see [the
-manual](https://difftastic.wilfred.me.uk/languages_supported.html) for the full list.
+## Development
 
-If a file has an unrecognised extension, difftastic uses a
-line-oriented diff with word highlighting.
+The desktop app lives under [`visual/`](visual/README.md). Its frontend is plain
+HTML, CSS, and JavaScript. Tauri calls the Rust adapter in the repository root.
 
-## Known Issues
+Run the app from the repository root:
 
-Performance. Difftastic scales relatively poorly on files with a large
-number of changes, and can use a lot of memory.
-
-Display. Difftastic has a side-by-side display which usually works well, but can
-be confusing.
-
-Robustness. Difftastic regularly has releases that fix crashes.
-
-## Non-goals
-
-Patching. Difftastic output is intended for human consumption, and it
-does not generate patches that you can apply later. Use `diff` if you
-need a patch.
-
-(Patch files are also line-oriented, which is too limited for
-difftastic. Difftastic might find additions and removals on the same
-line, and it tracks the relationship between line numbers in the old
-and new file.)
-
-Merging. AST merging is a hard problem that difftastic does not
-address. You might be interested in the [mergiraf
-tool](https://mergiraf.org/) ("merge giraffe"), which does do AST
-merging.
-
-## FAQ
-
-### Can I use difftastic with git?
-
-You can! The difftastic manual [includes instructions for git
-usage](https://difftastic.wilfred.me.uk/git.html). You can also use it
-[with mercurial](https://difftastic.wilfred.me.uk/mercurial.html).
-
-If you're an Emacs user, check out [this blog
-post](https://tsdh.org/posts/2022-08-01-difftastic-diffing-with-magit.html)
-showing one way to use difftastic with magit, as well as
-[difftastic.el](https://github.com/pkryger/difftastic.el).
-
-### Does difftastic integrate with my favourite tool?
-
-Probably not. Difftastic is young. Consider writing a plugin for your
-favourite tool, and I will link it in the README!
-
-### What about parse errors?
-
-By default, difftastic falls back to a line-oriented diff whenever
-parse errors are encountered.
-
-This is a conservative choice to ensure that difftastic never claims
-that two syntactically different files are the same.
-
-Parse errors can occur if the file uses language features that the
-parser does not understand, if the language relies on a preprocessor
-before parsing (e.g. C++), or if the file has genuine syntactic
-mistakes.
-
-In practice, difftastic virtually always produces a good result when
-there are a few minor parse errors. Consider allowing a small number
-of parse errors when using difftastic.
-
-```
-$ export DFT_PARSE_ERROR_LIMIT=20
-$ difft foo1.c foo2.c
+```sh
+just studio
 ```
 
-### Can difftastic help me with merge conflicts?
+Useful checks while working on it:
 
-Yes! As of version 0.50 (released 2023-08-16), difftastic understands merge conflict markers
-(i.e. `<<<<<<<`, `=======` and `>>>>>>>`).
-
-Pass your file with conflicts as a single argument to
-difftastic. Difftastic will construct the two conflicting files and
-diff those.
-
-```
-$ difft file_with_conflicts.js
+```sh
+cargo test --lib
+cargo test --manifest-path visual/src-tauri/Cargo.toml
 ```
 
-### Can difftastic do merges?
-
-No. AST merging is a hard problem that difftastic does not address.
-
-AST diffing is a lossy process from the perspective of a text
-diff. Difftastic will ignore whitespace that isn't syntactically
-significant, but merging requires tracking whitespace.
-
-The [mergiraf](https://mergiraf.org/) tool does offer merges based on
-a tree-sitter AST however.
-
-### Can difftastic ignore reordering?
-
-No. Difftastic always considers order to be important, so diffing
-e.g. `set(1, 2)` and `set(2, 1)` will show changes.
-
-If you're diffing JSON, consider sorting the keys before passing them
-to difftastic.
-
-```
-$ difft <(jq --sort-keys < file_1.json) <(jq --sort-keys < file_2.json)
-```
-
-See also [Tricky Cases: Unordered Data
-Types](https://difftastic.wilfred.me.uk/tricky_cases.html#unordered-data-types)
-in the manual.
-
-### Can I use difftastic to check for syntactic changes without diffing?
-
-Yes. Difftastic can check if the two files have the same AST, without
-calculating a diff. This is much faster than normal diffing, and
-useful for building tools that check for changes.
-
-For example:
-
-```
-$ difft --check-only --exit-code before.js after.js
-```
-
-This will set the exit code to 0 if there are no syntactic changes, or
-1 if there are changes found.
-
-### Why aren't colours appearing in my terminal?
-
-Difftastic uses ANSI bright colours by default, but some terminal
-themes show bright colours as grey. Solarized is a popular theme that
-does this.
-
-If you're a Solarized user, use `export DFT_BACKGROUND=light` to
-disable bright colours, or try a different terminal colour scheme.
-
-### How does it work?
-
-Difftastic treats structural diffing as a graph problem, and uses
-Dijkstra's algorithm.
-
-My [blog
-post](https://www.wilfred.me.uk/blog/2022/09/06/difftastic-the-fantastic-diff/)
-describes the design, and there is also an [internals section in the
-manual](https://difftastic.wilfred.me.uk/diffing.html).
-
-## Translation
-
-+ [Chinese](./translation/zh-CN/README-zh-CN.md)
+The pinned Rust version is recorded in `rust-toolchain.toml`.
 
 ## License
 
-Difftastic is open source under the MIT license, see LICENSE for more
-details.
-
-This repository also includes tree-sitter parsers by other authors in
-the `vendored_parsers/` directory. These are a mix of the MIT license and the
-Apache license. See `vendored_parsers/*/LICENSE` for more details.
-
-Files in `sample_files/` are also under the MIT license unless stated
-otherwise in their headers.
+Difftacular and Difftastic are available under the MIT license. See
+[`LICENSE`](LICENSE). The tree-sitter parsers under `vendored_parsers/` retain
+their own MIT or Apache licenses.
