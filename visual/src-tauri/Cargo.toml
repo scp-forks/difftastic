@@ -1,6 +1,6 @@
 [package]
 name = "difftacular"
-version = "0.1.1"
+version = "0.1.2"
 description = "A visual desktop frontend for difftastic"
 edition = "2021"
 rust-version = "1.85.0"
