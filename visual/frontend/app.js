@@ -158,11 +158,11 @@ async function chooseFile(side) {
 }
 
 async function compareIfReady() {
-  if (!state.lhs || !state.rhs || state.comparing) return;
+  if (!state.lhs || !state.rhs || state.comparing) return false;
   const api = tauriApi();
   if (!api?.core?.invoke) {
     showError("Open this page through Difftacular to run the Rust diff engine.");
-    return;
+    return false;
   }
 
   state.comparing = true;
@@ -181,8 +181,10 @@ async function compareIfReady() {
     buildRows();
     renderResult();
     renderFileCards();
+    return true;
   } catch (error) {
     showError(error);
+    return false;
   } finally {
     state.comparing = false;
     elements.loadingOverlay.classList.remove("visible");
@@ -423,11 +425,39 @@ function navigateChange(direction) {
   updateNavigation();
 }
 
-function swapFiles() {
+async function swapFiles() {
+  const previous = {
+    lhs: state.lhs,
+    rhs: state.rhs,
+    result: state.result,
+    rows: state.rows,
+    changeIndexes: state.changeIndexes,
+    currentChange: state.currentChange,
+  };
+  const hasRenderedComparison = Boolean(state.result && state.lhs && state.rhs);
+
   [state.lhs, state.rhs] = [state.rhs, state.lhs];
-  state.result = null;
+
+  if (!hasRenderedComparison) {
+    state.result = null;
+    renderFileCards();
+    void compareIfReady();
+    return;
+  }
+
+  // Keep the completed comparison mounted beneath the loading overlay. The
+  // swapped cards and diff are rendered together once the new result is ready,
+  // avoiding a trip through the full welcome screen between the two states.
+  if (await compareIfReady()) return;
+
+  state.lhs = previous.lhs;
+  state.rhs = previous.rhs;
+  state.result = previous.result;
+  state.rows = previous.rows;
+  state.changeIndexes = previous.changeIndexes;
+  state.currentChange = previous.currentChange;
+  renderResult();
   renderFileCards();
-  compareIfReady();
 }
 
 function resetComparison() {
