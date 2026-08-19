@@ -50,6 +50,10 @@ function bump(version, part) {
   }
 }
 
+// Every pattern below captures the text either side of the version and leaves
+// the line ending alone, because Git for Windows checks these files out with
+// CRLF and the release workflow runs this script there too.
+//
 // Replace exactly one occurrence, so a silently unmatched pattern is an error
 // rather than a file that keeps its old version.
 function replaceOnce(text, pattern, replacement, label) {
@@ -75,7 +79,7 @@ function write(version) {
   const cargo = readFileSync(cargoPath, "utf8");
   writeFileSync(
     cargoPath,
-    replaceOnce(cargo, /^version = "[^"]*"$/m, `version = "${version}"`, cargoPath),
+    replaceOnce(cargo, /^(version = ")[^"]*(")/m, `$1${version}$2`, cargoPath),
   );
 
   // Updating the lockfile in place keeps `cargo build --locked` working, so
@@ -85,8 +89,8 @@ function write(version) {
     lockPath,
     replaceOnce(
       lock,
-      /^(name = "difftacular"\nversion = )"[^"]*"$/m,
-      `$1"${version}"`,
+      /^(name = "difftacular"\r?\nversion = ")[^"]*(")/m,
+      `$1${version}$2`,
       lockPath,
     ),
   );
