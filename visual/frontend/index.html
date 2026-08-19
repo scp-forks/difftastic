@@ -19,11 +19,6 @@
           <span class="brand-product">studio</span>
         </div>
 
-        <div class="engine-pill">
-          <span class="pulse-dot"></span>
-          Local syntax engine
-        </div>
-
         <div class="top-actions">
           <button class="icon-button" id="newComparison" title="New comparison" aria-label="New comparison">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
@@ -37,9 +32,9 @@
       <main>
         <section class="welcome" id="welcome">
           <div class="welcome-copy">
-            <div class="eyebrow"><span></span> See code the way it is structured</div>
-            <h1>Find the change.<br /><em>Skip the noise.</em></h1>
-            <p>Difftastic understands syntax, so formatting changes stay quiet and meaningful edits stand out.</p>
+            <div class="eyebrow"><span></span> Syntax-aware file comparison</div>
+            <h1>Compare two files</h1>
+            <p>Choose an original file and a changed file. Difftastic compares their syntax and ignores formatting-only edits.</p>
           </div>
 
           <div class="file-stage" id="fileStage">
@@ -139,23 +134,19 @@
               <span class="check-ring">
                 <svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9" /></svg>
               </span>
-              <strong>No syntactic changes</strong>
-              <p>The files are structurally equivalent with these settings.</p>
+              <strong>No syntax changes</strong>
+              <p>These files have the same syntax with the current settings.</p>
             </div>
           </div>
         </section>
       </main>
 
-      <footer>
-        <span>Your files never leave this machine.</span>
-        <span class="footer-engine"><i></i> Powered by difftastic’s structural matcher</span>
-      </footer>
     </div>
 
     <div class="drop-overlay" id="dropOverlay" aria-hidden="true">
       <div><span class="brand-mark"><i></i><i></i><i></i></span><strong>Drop both to compare</strong><small>First file → Original&nbsp;&nbsp;·&nbsp;&nbsp;Second file → Changed</small></div>
     </div>
-    <div class="loading-overlay" id="loadingOverlay" aria-hidden="true"><div class="loader"></div><span>Reading the syntax tree…</span></div>
+    <div class="loading-overlay" id="loadingOverlay" aria-hidden="true"><div class="loader"></div><span>Comparing files...</span></div>
     <div class="toast" id="toast" role="alert"><strong>Couldn’t compare those files</strong><span id="toastMessage"></span><button id="closeToast" aria-label="Dismiss">×</button></div>
 
     <script src="app.js"></script>
