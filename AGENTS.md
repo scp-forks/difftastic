@@ -1,5 +1,26 @@
 # Repository Agent Instructions
 
+## Repository and branch topology
+
+- This repository is the `scp-forks/difftastic` fork of the canonical
+  `Wilfred/difftastic` project.
+- The `origin` remote is the user's fork:
+  `https://github.com/scp-forks/difftastic`.
+- The `upstream` remote is the canonical project:
+  `https://github.com/Wilfred/difftastic.git`.
+- Difftastic Studio is fork-specific work developed on
+  `feature/difftastic-studio`. Keep Studio changes on that feature branch unless
+  the user explicitly asks to merge or move them elsewhere. Do not make Studio
+  changes directly on `master`.
+- Preserve a clean path for upstream updates. When the user asks to sync from
+  upstream, fetch `upstream`, update the fork's `master` from
+  `upstream/master`, and then merge the updated `master` into
+  `feature/difftastic-studio`. Prefer a normal merge for an already-published
+  feature branch; do not rewrite its history unless the user explicitly asks.
+- Never push to the canonical `upstream` remote. Treat commits, pushes, branch
+  merges, rebases, and upstream synchronization as separate actions that each
+  require explicit user authorization.
+
 ## Difftastic Studio deployment
 
 - After making changes that affect the Difftastic Studio GUI, its Rust visual

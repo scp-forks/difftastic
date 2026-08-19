@@ -16,6 +16,10 @@ their syntax.
 
 ## Visual Desktop App
 
+### Why this exists
+
+Difftastic is an exceptional syntax-aware diff tool, but its command-line interface is not always the quickest fit when you simply want to compare a couple of files sitting on your desktop. Difftastic Studio gives the same structural diffing engine a more graphical, always-ready home: launch it from Raycast, leave it running in the background, then drag files—or paste text—onto either side and see the meaningful changes immediately.
+
 This fork includes **Difftastic Studio**, a local Tauri desktop viewer with
 native drag-and-drop, direct text pasting, side-by-side syntax highlighting,
 change navigation and light/dark themes. It calls the same Rust parser and
