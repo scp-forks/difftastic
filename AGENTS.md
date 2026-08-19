@@ -8,10 +8,10 @@
   `https://github.com/scp-forks/difftastic`.
 - The `upstream` remote is the canonical project:
   `https://github.com/Wilfred/difftastic.git`.
-- Difftastic Studio is fork-specific work developed on
-  `feature/difftastic-studio`. Keep Studio changes on that feature branch unless
-  the user explicitly asks to merge or move them elsewhere. Do not make Studio
-  changes directly on `master`.
+- Difftacular is fork-specific work developed on
+  `feature/difftastic-studio`. Keep Difftacular changes on that feature branch
+  unless the user explicitly asks to merge or move them elsewhere. Do not make
+  Difftacular changes directly on `master`.
 - Preserve a clean path for upstream updates. When the user asks to sync from
   upstream, fetch `upstream`, update the fork's `master` from
   `upstream/master`, and then merge the updated `master` into
@@ -21,16 +21,16 @@
   merges, rebases, and upstream synchronization as separate actions that each
   require explicit user authorization.
 
-## Difftastic Studio deployment
+## Difftacular deployment
 
-- After making changes that affect the Difftastic Studio GUI, its Rust visual
+- After making changes that affect the Difftacular GUI, its Rust visual
   adapter, or its Tauri integration, verify the relevant code and tests during
   development.
 - Once the user confirms they are satisfied with the changes, run
   `just install-studio` from the repository root before considering the work
   complete. This must rebuild the current release app, replace
-  `~/Applications/Difftastic.app`, register it with macOS Launch Services, and
+  `~/Applications/Difftacular.app`, register it with macOS Launch Services, and
   launch it so the latest accepted build is immediately available through
-  Raycast by searching for **Difftastic**.
+  Raycast by searching for **Difftacular**.
 - Do not commit or push as part of deployment unless the user explicitly asks
   for those actions.
