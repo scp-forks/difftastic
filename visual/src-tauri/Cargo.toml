@@ -1,5 +1,5 @@
 [package]
-name = "difftastic-studio"
+name = "difftacular"
 version = "0.1.0"
 description = "A visual desktop frontend for difftastic"
 edition = "2021"

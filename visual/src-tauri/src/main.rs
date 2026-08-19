@@ -42,5 +42,5 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![compare_inputs])
         .run(tauri::generate_context!())
-        .expect("error while running Difftastic Studio");
+        .expect("error while running Difftacular");
 }

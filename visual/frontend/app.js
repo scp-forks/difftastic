@@ -120,6 +120,7 @@ function renderFileCards() {
   renderCard(elements.lhsCard, state.lhs);
   renderCard(elements.rhsCard, state.rhs);
   const hasResult = Boolean(state.result && state.lhs && state.rhs);
+  document.body.classList.toggle("comparison-active", hasResult);
   elements.welcome.classList.toggle("compact", hasResult);
   elements.workspace.classList.toggle("visible", hasResult);
 }
@@ -160,7 +161,7 @@ async function compareIfReady() {
   if (!state.lhs || !state.rhs || state.comparing) return;
   const api = tauriApi();
   if (!api?.core?.invoke) {
-    showError("Open this page through Difftastic Studio to run the Rust diff engine.");
+    showError("Open this page through Difftacular to run the Rust diff engine.");
     return;
   }
 

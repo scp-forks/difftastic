@@ -701,6 +701,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "difftacular"
+version = "0.1.0"
+dependencies = [
+ "difftastic",
+ "serde",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-runtime",
+ "tauri-runtime-wry",
+]
+
+[[package]]
 name = "difftastic"
 version = "0.70.0"
 dependencies = [
@@ -794,19 +807,6 @@ dependencies = [
  "unicode-width",
  "version_check",
  "wu-diff",
-]
-
-[[package]]
-name = "difftastic-studio"
-version = "0.1.0"
-dependencies = [
- "difftastic",
- "serde",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-runtime",
- "tauri-runtime-wry",
 ]
 
 [[package]]

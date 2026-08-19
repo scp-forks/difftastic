@@ -1,4 +1,4 @@
-# Difftastic Studio
+# Difftacular
 
 A small Tauri 2 desktop frontend that renders difftastic's own structured,
 syntax-aware diff output. The frontend is dependency-free HTML, CSS and
@@ -33,8 +33,8 @@ just install-studio
 ```
 
 This builds the current source in release mode, safely replaces
-`~/Applications/Difftastic.app`, registers it with macOS Launch Services, and
-launches it. Raycast can then open it by searching for **Difftastic**. Run the
+`~/Applications/Difftacular.app`, registers it with macOS Launch Services, and
+launches it. Raycast can then open it by searching for **Difftacular**. Run the
 same command again whenever you want to deploy the latest local GUI changes.
 
 Drop one file directly onto the Original or Changed card to choose its side. If

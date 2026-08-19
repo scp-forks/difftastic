@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
-    echo "Difftastic.app installation is currently supported on macOS only." >&2
+    echo "Difftacular.app installation is currently supported on macOS only." >&2
     exit 1
 fi
 
@@ -15,14 +15,16 @@ fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 tauri_dir="${script_dir}/src-tauri"
-built_app="${tauri_dir}/target/release/bundle/macos/Difftastic.app"
+built_app="${tauri_dir}/target/release/bundle/macos/Difftacular.app"
 user_applications_dir="${HOME:?}/Applications"
-installed_app="${user_applications_dir}/Difftastic.app"
-staging_app="${user_applications_dir}/.Difftastic.app.installing"
-backup_app="${user_applications_dir}/.Difftastic.app.previous"
+installed_app="${user_applications_dir}/Difftacular.app"
+staging_app="${user_applications_dir}/.Difftacular.app.installing"
+backup_app="${user_applications_dir}/.Difftacular.app.previous"
+legacy_app="${user_applications_dir}/Difftastic.app"
+legacy_backup="${user_applications_dir}/.Difftastic.app.renamed"
 launch_services="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
-echo "Building the latest Difftastic GUI…"
+echo "Building the latest Difftacular GUI…"
 (
     cd "$tauri_dir"
     cargo tauri build --bundles app
@@ -41,7 +43,7 @@ mkdir -p "$user_applications_dir"
 osascript -e 'tell application id "dev.difftastic.studio" to quit' >/dev/null 2>&1 || true
 
 # Keep the old app recoverable until the newly built bundle is in place.
-rm -rf "$staging_app" "$backup_app"
+rm -rf "$staging_app" "$backup_app" "$legacy_backup"
 ditto "$built_app" "$staging_app"
 
 # Cargo emits a linker-signed executable, but the containing bundle still
@@ -52,11 +54,17 @@ codesign --force --deep --sign - "$staging_app"
 if [[ -e "$installed_app" ]]; then
     mv "$installed_app" "$backup_app"
 fi
+if [[ -e "$legacy_app" ]]; then
+    mv "$legacy_app" "$legacy_backup"
+fi
 if mv "$staging_app" "$installed_app"; then
-    rm -rf "$backup_app"
+    rm -rf "$backup_app" "$legacy_backup"
 else
     if [[ -e "$backup_app" ]]; then
         mv "$backup_app" "$installed_app"
+    fi
+    if [[ -e "$legacy_backup" ]]; then
+        mv "$legacy_backup" "$legacy_app"
     fi
     exit 1
 fi
@@ -70,4 +78,4 @@ fi
 open "$installed_app"
 echo
 echo "Installed and launched: $installed_app"
-echo "You can now type Difftastic in Raycast to open it."
+echo "You can now type Difftacular in Raycast to open it."
