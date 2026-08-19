@@ -146,10 +146,14 @@ workflow. Publish a new version with one command:
 just release-studio           # patch bump; pass minor or major instead
 ```
 
-The same thing is a button under the repository's **Actions** tab: choose
-**Difftacular Release**, then **Run workflow**. Either way GitHub bumps the
-version, commits and tags it on `feature/difftastic-studio`, builds the macOS,
-Linux and Windows installers, and publishes them as a GitHub release.
+That bumps the version, commits and tags it as `difftacular-vX.Y.Z`, and pushes.
+Pushing the tag is what starts the workflow: it builds the macOS, Linux and
+Windows installers and attaches them to a GitHub release.
+
+The workflow also accepts a **Run workflow** button under the repository's
+**Actions** tab, but GitHub only offers that button for workflows on the
+default branch, so it stays hidden while this workflow lives only on
+`feature/difftastic-studio`.
 
 The version lives in `visual/src-tauri/tauri.conf.json`, and
 `visual/scripts/set-version.mjs` keeps it in step with that crate's `Cargo.toml`

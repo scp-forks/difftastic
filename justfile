@@ -9,12 +9,43 @@ studio:
 install-studio:
     bash visual/install-macos.sh
 
-# Publish a new Difftacular release. GitHub bumps the version, builds the macOS,
-# Linux and Windows installers, and publishes them. Pass minor or major to
-# change the bump. Requires the gh CLI.
+# Publish a new Difftacular release: bump the version and tag it. GitHub then
+# builds the macOS, Linux and Windows installers and attaches them to a release.
+# Pass minor or major to change the bump.
 release-studio bump="patch":
-    gh workflow run difftacular-release.yml --ref feature/difftastic-studio -f bump={{bump}}
-    @echo "Started. Watch it with: gh run watch --repo scp-forks/difftastic"
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    branch=feature/difftastic-studio
+
+    if [ "$(git rev-parse --abbrev-ref HEAD)" != "$branch" ]; then
+        echo "Difftacular releases are cut from $branch." >&2
+        exit 1
+    fi
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "Commit or stash your changes before releasing." >&2
+        exit 1
+    fi
+
+    git fetch --quiet origin "$branch" --tags
+    if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$branch")" ]; then
+        echo "$branch and origin/$branch have diverged. Pull or push first." >&2
+        exit 1
+    fi
+
+    version=$(node visual/scripts/set-version.mjs --bump {{bump}})
+    tag="difftacular-v$version"
+
+    git add visual/src-tauri/tauri.conf.json \
+            visual/src-tauri/Cargo.toml \
+            visual/src-tauri/Cargo.lock
+    git commit --quiet -m "Difftacular $version"
+    git tag -a "$tag" -m "Difftacular $version"
+    git push --quiet origin "$branch"
+    git push --quiet origin "$tag"
+
+    echo "Tagged $tag. GitHub is building the installers:"
+    echo "  https://github.com/scp-forks/difftastic/actions"
 
 # Build and serve the manual.
 doc:
