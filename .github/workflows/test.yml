@@ -1,4 +1,10 @@
-on: [push, pull_request]
+# tags-ignore keeps a Difftacular release tag from re-running this whole matrix
+# over the same commit the branch push already covered.
+on:
+  push:
+    tags-ignore:
+      - "**"
+  pull_request:
 
 name: Test
 

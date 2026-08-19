@@ -1,6 +1,12 @@
 name: Coverage
 
-on: [pull_request, push]
+# tags-ignore keeps a Difftacular release tag from re-running this over the
+# same commit the branch push already covered.
+on:
+  pull_request:
+  push:
+    tags-ignore:
+      - "**"
 
 jobs:
   coverage:

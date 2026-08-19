@@ -31,6 +31,6 @@
     "targets": ["app"],
     "category": "DeveloperTool",
     "shortDescription": "A syntax-aware visual diff tool",
-    "icon": ["icons/icon.png"]
+    "icon": ["icons/icon.png", "icons/icon.ico"]
   }
 }
