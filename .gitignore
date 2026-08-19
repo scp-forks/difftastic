@@ -8,3 +8,4 @@ sample_files/compare.result
 
 notes.md
 perf_baseline_*.txt
+.DS_Store
