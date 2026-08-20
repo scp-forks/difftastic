@@ -5,7 +5,12 @@ Difftacular is a desktop app for comparing two files with
 Drop in a pair of files, choose them in the file picker, or paste text into
 either side. The comparison stays on your computer.
 
-![Difftacular waiting for two files](img/difftacular.png)
+
+
+
+https://github.com/user-attachments/assets/c1de9cd6-e166-4231-a642-1e0dedcb2b7d
+
+
 
 ## Install
 
