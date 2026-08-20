@@ -38,8 +38,13 @@
 ## Difftacular releases
 
 - Installers for macOS, Linux and Windows are built and published by
-  `.github/workflows/difftacular-release.yml`. Start a release from the
-  repository's Actions tab or with `just release-studio [patch|minor|major]`.
+  `.github/workflows/difftacular-release.yml`. Start a release with
+  `just release-studio [patch|minor|major]`, which bumps the version, tags it
+  and pushes. Pushing the tag is what triggers the build. The branch must
+  already be pushed and the tree clean, or the recipe refuses to run.
+- The workflow also declares `workflow_dispatch`, but GitHub only shows the
+  Actions tab's "Run workflow" button for workflows on the default branch, so
+  that button stays hidden while this one lives only on the feature branch.
 - Release tags are prefixed, as in `difftacular-v0.2.0`. Never tag a
   Difftacular release with a bare version number: those tags trigger the
   inherited upstream `release.yml`, which publishes difftastic to crates.io.
