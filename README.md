@@ -106,7 +106,15 @@ for the current list.
 This repository is a downstream fork of
 [Wilfred Hughes's Difftastic](https://github.com/Wilfred/difftastic).
 Difftacular is the desktop frontend maintained on the
-`feature/difftastic-studio` branch. 
+[`feature/difftastic-studio`](https://github.com/scp-forks/difftastic/tree/feature/difftastic-studio)
+branch.
+
+The fork intentionally keeps `master` as its default branch because GitHub's
+**Sync fork** button updates the default branch from upstream. Keeping
+`master` in that role gives the fork a clean copy of upstream Difftastic.
+Upstream updates go into `master` first and are then merged into the
+Difftacular branch. As a result, the repository's main GitHub page shows
+Difftastic; use the branch link above for Difftacular.
 
 The app calls the Difftastic library in this repository, so its parsing and
 structural comparison come from the same Rust implementation as the `difft`

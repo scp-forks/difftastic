@@ -12,6 +12,11 @@
   `feature/difftastic-studio`. Keep Difftacular changes on that feature branch
   unless the user explicitly asks to merge or move them elsewhere. Do not make
   Difftacular changes directly on `master`.
+- Keep `master` as the fork's default branch on GitHub. GitHub's **Sync fork**
+  web interface operates on the default branch, so this preserves the simple
+  path for updating `master` from the canonical repository. Do not change the
+  default to `feature/difftastic-studio` merely to make Difftacular the
+  repository landing page.
 - Preserve a clean path for upstream updates. When the user asks to sync from
   upstream, fetch `upstream`, update the fork's `master` from
   `upstream/master`, and then merge the updated `master` into
